@@ -1,9 +1,12 @@
-import { Link as RouterLink } from 'react-router-dom';
-import { Button, Grid, Link, TextField, Typography } from '@mui/material';
-import { AuthLayout } from '../layout/AuthLayout';
-import { useForm } from '../../hooks';
-import { useState } from 'react';
+import { startCreatingUserWithEmailPassword } from '../../store/auth';
 
+import { useDispatch, useSelector } from 'react-redux';
+import { useMemo, useState } from 'react';
+import { useForm } from '../../hooks';
+import { AuthLayout } from '../layout/AuthLayout';
+
+import { Link as RouterLink } from 'react-router-dom';
+import { Alert, Button, Grid, Link, TextField, Typography } from '@mui/material';
 
 const formData = {
   displayName: '',
@@ -12,28 +15,50 @@ const formData = {
 };
 
 const formValidations = {
-  displayName: [ (value) => value.length >= 1 , 'Name is mandatory.'] ,
-  email: [ (value) => value.includes('@'), 'Email must includes a @'],
-  password: [ (value) => value.length >=6 , 'Password must have at least 6 characters.'],
+  displayName: [(value) => value.length >= 1, 'Name is mandatory.'],
+  email: [(value) => value.includes('@'), 'Email must includes a @'],
+  password: [
+    (value) => value.length >= 6,
+    'Password must have at least 6 characters.',
+  ],
 };
 
 export const RegisterPage = () => {
-  
-  const { 
-    emailValid, passwordValid, displayNameValid, isFormValid,
-    email, password, displayName, onInputChange, formState 
-  
+  const dispatch = useDispatch();
+
+   const { status, errorMessage } = useSelector(state => state.auth);
+
+   const isCheckingAuthentication = useMemo(
+     () => status === 'checking',
+     [status]
+   ); 
+
+   console.log(isCheckingAuthentication);
+
+  const {
+    emailValid,
+    passwordValid,
+    displayNameValid,
+    isFormValid,
+    email,
+    password,
+    displayName,
+    onInputChange,
+    formState,
   } = useForm(formData, formValidations);
 
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
-
-const onSubmit = ( event ) => {
+  const onSubmit = (event) => {
     event.preventDefault();
     setIsFormSubmitted(true);
-    console.log(formState);
 
-  }
+    if (!isFormValid) return;
+
+    console.log('Dentro de Submit', formState)
+
+    dispatch(startCreatingUserWithEmailPassword(formState));
+  };
 
   return (
     <AuthLayout title='Crear cuenta'>
@@ -82,8 +107,19 @@ const onSubmit = ( event ) => {
           </Grid>
 
           <Grid container spacing={2} sx={{ mb: 2, mt: 1 }}>
+            <Grid 
+              item xs={12}
+              display={ !!errorMessage ? '': 'none' }
+              >
+              <Alert severity='error'> {errorMessage}</Alert>
+            </Grid>
+
             <Grid item xs={12}>
-              <Button variant='contained' fullWidth type='submit'>
+              <Button 
+                disabled={isCheckingAuthentication}
+                variant='contained' 
+                fullWidth 
+                type='submit'>
                 Crear cuenta
               </Button>
             </Grid>
